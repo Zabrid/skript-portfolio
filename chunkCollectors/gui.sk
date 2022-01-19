@@ -1,0 +1,139 @@
+#
+# Zabrid Chunk Collectors
+#
+# Compatible Factions Plugin: SaberFactions
+#
+# Author: {zabrid}#3433
+#
+
+#
+# ! Do not go beyond this point !
+#
+
+import:
+	java.lang.Object
+	org.bukkit.event.Event
+	org.bukkit.event.entity.EntityEvent
+	org.bukkit.event.entity.EntityExplodeEvent
+	org.bukkit.entity.TNTPrimed
+	com.massivecraft.factions.event.FactionDisbandEvent
+	com.massivecraft.factions.FLocation
+	com.massivecraft.factions.Factions
+	com.massivecraft.factions.Board
+	com.massivecraft.factions.Faction
+	com.massivecraft.factions.FPlayers
+
+function capitalizeFirst(text: texts) :: texts:
+
+  loop {_text::*}:
+    set {_first-char} to first character of loop-value
+    set {_remaining} to last (length of loop-value - 1) characters of loop-value
+
+    set {_output::%loop-index%} to "%{_first-char} in upper case%%{_remaining}%"
+
+  return {_output::*}
+
+function collectors_openGui(p: player):
+    set {_fac} to uncolored FPlayers.getInstance().getByPlayer({_p}).getFaction().getTag()
+    set {_id} to Factions.getInstance().getByTag({_fac}).getId()
+    if {_fac} is not "Wilderness":
+        set {_gui} to chest inventory with collectors_getConfigurationValue("gui-size") parsed as integer rows named collectors_getConfigurationValue("gui-name")
+        if collectors_getConfigurationValue("gui-fill-empty-slots") is "true":
+            set slot (all integers between 0 and (collectors_getConfigurationValue("gui-size") parsed as integer * 9) - 1) of {_gui} to collectors_getConfigurationValue("gui-fill-item") parsed as item named collectors_getConfigurationValue("gui-fill-item-name")
+        set {_slots} to -1
+        loop yaml node keys "drops" from "drops":
+            set {_count} to 0
+            add 1 to {_slots}
+            set {_item} to loop-value parsed as item
+            set {_name::*} to capitalizeFirst(loop-value)
+            replace all " block" in {_name::*} with ""
+            set name of {_item} to collectors_getConfigurationValue("gui-item-name")
+            set lore of {_item} to collectors_getConfigurationValue("gui-item-lore") split by "|nl|"
+            set {_total-items} to collectors_getFacDrop({_id}, "%loop-value%")
+            set {_color} to yaml value "drops.%loop-value%.color" from "drops"
+            set {_price} to yaml value "drops.%loop-value%.price" from "drops"
+            replace all "{c}" with colored "%colored {_color}%" in {_item}'s name
+            replace all "{name}" with "%{_name::*}%" in {_item}'s name
+            replace all "{total-items}" with "%{_total-items} ? 0%" in {_item}'s name
+            if "%loop-value%" is "tnt block":
+                replace all "{total-value}" with "N/A" in {_item}'s name
+            else:
+                replace all "{total-value}" with "%{_total-items} * {_price}%" in {_item}'s name
+            replace all "{c}" with "%colored {_color}%" in {_item}'s lore
+            replace all "{name}" with "%{_name::*}%" in {_item}'s lore
+            replace all "{total-items}" with "%{_total-items} ? 0%" in {_item}'s lore
+            if "%loop-value%" is "tnt block":
+                replace all "{total-value}" with "N/A" in {_item}'s lore
+            else:
+                replace all "{total-value}" with "%{_total-items} * {_price}%" in {_item}'s lore
+            set slot {_slots} of {_gui} to {_item}
+
+        open {_gui} to {_p}
+    else:
+        set {_message::*} to collectors_getConfigurationValue("message-you-must-have-a-faction-to-open-collector-gui") split by "|nl|"
+        send {_message::*} to {_p}
+on inventory click:
+    if name of player's current inventory is collectors_getConfigurationValue("gui-name"):
+        cancel event
+        clicked inventory is player's current inventory
+        set {_slots} to -1
+        loop yaml node keys "drops" from "drops":
+            set {_count} to 0
+            add 1 to {_slots}
+
+            if index of clicked slot is {_slots}:
+                if "%loop-value%" is not "tnt block":
+                    set {_price} to yaml value "drops.%loop-value%.price" from "drops"
+                    set {_fac} to uncolored FPlayers.getInstance().getByPlayer(player).getFaction().getTag()
+                    set {_id} to Factions.getInstance().getByTag({_fac}).getId()
+                    set {_total} to collectors_getFacDrop({_id}, "%loop-value%")
+                    set {_a} to uncolored "&d&l%loop-value%"
+                    if {_total} is greater than 0:
+                        collectors_clearFacDrop({_id}, "%loop-value%")
+                        set {_money} to {_total} * {_price}
+                        set {_message::*} to collectors_getConfigurationValue("message-successfully-sold") split by "|nl|"
+                        replace all "{total-items}" with "%{_total}%" in {_message::*}
+                        replace all "{total-value}" with "%{_total} * {_price}%" in {_message::*}
+                        replace all "{item}" with "%{_a}%" in {_message::*}
+                        send {_message::*}
+                        add {_money} to player's balance
+                        collectors_openGui(player)
+                    else:
+                        set {_message::*} to collectors_getConfigurationValue("message-you-do-not-have-any-to-sell") split by "|nl|"
+                        send {_message::*}
+                else:
+                    set {_act-fac} to FPlayers.getInstance().getByPlayer(player).getFaction()
+                    set {_fac} to uncolored FPlayers.getInstance().getByPlayer(player).getFaction().getTag()
+                    set {_id} to Factions.getInstance().getByTag({_fac}).getId()
+                    set {_total} to collectors_getFacDrop({_id}, "%loop-value%")
+                    set {_a} to uncolored "&d&l%loop-value%"
+                    if {_total} is greater than 0:
+
+                        set {_tnt} to {_act-fac}.getTnt()
+                        set {_maxtnt} to {_act-fac}.getTntBankLimit()
+                        
+                        set {_maxtnt2} to {_tnt} + {_total}
+
+                        if {_maxtnt2} is greater than {_maxtnt}:
+                            set {_maxtnt3} to difference between {_tnt} and {_maxtnt}
+                            if {_maxtnt3} is greater than 0:
+                                set {_total} to {_maxtnt3}
+                                collectors_subtractFacDrop({_id}, "%loop-value%", {_total})
+                            else:
+                                set {_message::*} to collectors_getConfigurationValue("message-tntbank-too-full") split by "|nl|"
+                                send {_message::*}
+                                stop
+                        else:
+                            collectors_clearFacDrop({_id}, "%loop-value%")
+                        
+                        {_act-fac}.addTnt({_total})
+                        set {_message::*} to collectors_getConfigurationValue("message-successfully-sold") split by "|nl|"
+                        replace all "{total-items}" with "%{_total}%" in {_message::*}
+                        replace all "{total-value}" with "N/A" in {_message::*}
+                        replace all "{item}" with "%{_a}%" in {_message::*}
+                        send {_message::*}
+                        collectors_openGui(player)
+                    else:
+                        set {_message::*} to collectors_getConfigurationValue("message-you-do-not-have-any-to-sell") split by "|nl|"
+                        send {_message::*}
+                

@@ -1,0 +1,145 @@
+#
+# Zabrid Chunk Collectors
+#
+# Compatible Factions Plugin: SaberFactions
+#
+# Author: {zabrid}#3433
+#
+
+options:
+#
+# Configuration Options
+#
+
+#  Use |nl| to represent a new line in lore and messages
+
+#  Chunk Collector Item:
+    item-item: Beacon
+    item-name: "&d&lChunk Collector"
+    item-lore: "&7Automatically collect drops inside of|nl|&7the chunk it's placed in and place them|nl|&7inside of your faction's &n/f collector&7.|nl||nl|&dDrops:|nl|&d&l * &7Cactus|nl|&d&l * &7Mob Drops|nl||nl|&cAnyone can break your faction collector|nl|&cinside your faction's claim using a pickaxe.|nl||nl|&e&l(!)&f Place down to activate."
+
+#  Gui:
+    gui-name: "&8Chunk Collector"
+    gui-size: 2
+    gui-fill-empty-slots: True
+    gui-fill-item: Gray stained glass pane
+    gui-fill-item-name: "&7 &7"
+
+#  Gui Items:
+#   The items that represent different drops
+#   {c} represents the color selected when adding items to the gui
+#   {name} represents the name of the drop
+#   {total-items} represents the total amount of items in the collector
+#   {total-value} represents the amount of money the items are worth
+    gui-item-name: "{c}&l(!){c} {name}"
+    gui-item-lore: "|nl|{c}Information:|nl|{c}&l * &7Total Items: {c}{total-items}|nl|{c}&l * &7Total Value: &a&l${total-value}|nl||nl|&e&l(!)&f Click to sell all of this item."
+
+#  Messages:
+    message-no-permissions: "&c&l(!)&7 You do not have the required permissions."
+    message-collector-help: "|nl|&d&l(!)&d Chunk Collectors Help &8[&7Page: 1/1&8]|nl|&d&l * &7/collector give <player> <amt=0> &8- &fGive a player a collector.|nl|&d&l * &7/collector additem <colorCode> <sellPrice> &8-&f Add the item you're holding to the collector.|nl|&d&l * &7/collector gui &8-&f Open the collector menu.|nl|&d&l * &7/collector reload &8- &fReload the configuration file.|nl|&d&l * &7/collector reloadall &8-&f Reload the entire skript.|nl|&7|nl|&b&l * &7Version: &b1.0|nl|&b&l * &7Author: &b{zabrid}##3433|nl|"
+    message-incorrect-give-usage: "&cIncorrect Usage: /collector give <player> <amt=0>"
+    message-player-specified-online: "&cThe player you specified is not online."
+    message-recieved-chunk-collector: "&d&l(!)&7 You have recieved &d{amt} x Chunk Collector(s)&7."
+    message-given-chunk-collector: "&d&l(!)&7 You have given {player}&d {amt} x Chunk Collector(s)&7."
+    message-config-reloading: "&d&l(!)&7 Initiating reloading the configuration file."
+    message-config-reloaded: "&d&l(!)&7 Finished reloading the configuration file.|nl|&d  - &cView console for any errors."
+    message-all-reloading: "&d&l(!)&7 Initiating reloading the entire collector folder."
+    message-all-reloaded: "&d&l(!)&7 Finished reloading the entire collector folder.|nl|&d  - &cView console for any errors."
+    message-item-added: "|nl|&d&l(!)&7 You have successfully registered a new item.|nl|&d  - &7Sell Price: &d{price}|nl|&d  - &7Color: &d{c}Color|nl|&d  - &7Item: &d{item}|nl|"
+    message-incorrect-additem-usage: "&cIncorrect Usage: /collector additem <colorCode> <sellPrice>"
+    message-specify-valid-colorcode: "&cPlease specify a valid color code.|nl|&7Color codes can be viewed: https://minecraft.fandom.com/wiki/Formatting_codes"
+    message-invalid-item: "&cYou cannot add &nAir&c to the collector. Please add a valid item."
+    message-must-have-faction-to-place-collector: "&d&l(!)&7 You must be in a faction to place a Chunk Collector."
+    message-already-collector-in-chunk: "&d&l(!)&7 You cannot place 2 chunk collectors in the same chunk."
+    message-successfully-broke-collector: "&d&l(!)&7 You have successfully broken a Chunk Collector."
+    message-successfully-placed-collector: "&d&l(!)&7 You have successfully placed a Chunk Collector."
+    message-you-must-use-pickaxe-to-break-collectors: "&d&l(!)&7 You must use a pickaxe to break a Chunk Collector."
+    message-you-must-have-a-faction-to-open-collector-gui: "&d&l(!)&7 You must have a faction to open the Chunk Collector GUI."
+    message-you-do-not-have-any-to-sell: "&d&l(!)&7 You do not have any of this item to sell."
+    message-successfully-sold: "|nl|&d&l(!)&7 You have successfully sold &d{item}&7:|nl|&d&l * &7Items Sold: &d{total-items}|nl|&d&l * &7Profit: &a&l+${total-value}|nl|"
+    message-tntbank-too-full: "&b&l(!)&7 Your faction's virtual tnt storage is too full."
+
+#  Miscellaneous Options:
+    command-permission: collector.admin
+
+
+
+
+
+
+
+
+
+#
+# ! Do not go beyond this point !
+#
+
+function collectors_getConfigurationValue(v: text) :: text:
+    if {_v} is "item-item":
+        return "{@item-item}"
+    else if {_v} is "item-name":
+        return {@item-name}
+    else if {_v} is "item-lore":
+        return {@item-lore}
+    else if {_v} is "gui-name":
+        return {@gui-name}
+    else if {_v} is "gui-size":
+        return "{@gui-size}"
+    else if {_v} is "gui-fill-empty-slots":
+        return "{@gui-fill-empty-slots}"
+    else if {_v} is "gui-fill-item":
+        return "{@gui-fill-item}"
+    else if {_v} is "gui-item-name":
+        return {@gui-item-name}
+    else if {_v} is "gui-item-lore":
+        return {@gui-item-lore}
+    else if {_v} is "command-permission":
+        return "{@command-permission}"
+    else if {_v} is "message-no-permissions":
+        return {@message-no-permissions}
+    else if {_v} is "message-collector-help":
+        return {@message-collector-help}
+    else if {_v} is "message-incorrect-give-usage":
+        return {@message-incorrect-give-usage}
+    else if {_v} is "message-player-specified-online":
+        return {@message-player-specified-online}
+    else if {_v} is "message-recieved-chunk-collector":
+        return {@message-recieved-chunk-collector}
+    else if {_v} is "message-given-chunk-collector":
+        return {@message-given-chunk-collector}
+    else if {_v} is "message-config-reloading":
+        return {@message-config-reloading}
+    else if {_v} is "message-config-reloaded":
+        return {@message-config-reloaded}
+    else if {_v} is "message-all-reloading":
+        return {@message-all-reloading}
+    else if {_v} is "message-all-reloaded":
+        return {@message-all-reloaded}
+    else if {_v} is "gui-fill-item-name":
+        return {@gui-fill-item-name}
+    else if {_v} is "message-item-added":
+        return {@message-item-added}
+    else if {_v} is "message-incorrect-additem-usage":
+        return {@message-incorrect-additem-usage}
+    else if {_v} is "message-specify-valid-colorcode":
+        return {@message-specify-valid-colorcode}
+    else if {_v} is "message-invalid-item":
+        return {@message-invalid-item}
+    else if {_v} is "message-must-have-faction-to-place-collector":
+        return {@message-must-have-faction-to-place-collector}
+    else if {_v} is "message-already-collector-in-chunk":
+        return {@message-already-collector-in-chunk}
+    else if {_v} is "message-successfully-broke-collector":
+        return {@message-successfully-broke-collector}
+    else if {_v} is "message-successfully-placed-collector":
+        return {@message-successfully-placed-collector}
+    else if {_v} is "message-you-must-use-pickaxe-to-break-collectors":
+        return {@message-you-must-use-pickaxe-to-break-collectors}
+    else if {_v} is "message-you-must-have-a-faction-to-open-collector-gui":
+        return {@message-you-must-have-a-faction-to-open-collector-gui}
+    else if {_v} is "message-you-do-not-have-any-to-sell":
+        return {@message-you-do-not-have-any-to-sell}
+    else if {_v} is "message-successfully-sold":
+        return {@message-successfully-sold}
+    else if {_v} is "message-tntbank-too-full":
+        return {@message-tntbank-too-full}

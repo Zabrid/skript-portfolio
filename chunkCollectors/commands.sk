@@ -1,0 +1,106 @@
+#
+# Zabrid Chunk Collectors
+#
+# Compatible Factions Plugin: SaberFactions
+#
+# Author: {zabrid}#3433
+#
+
+#
+# ! Do not go beyond this point !
+#
+
+command /collector [<text>] [<offline player>] [<integer>]:
+    aliases: /collectors, /chunkcollectors, /chunkcollector
+    trigger:
+        set {_perm} to collectors_getConfigurationValue("command-permission")
+        if sender is console:
+            set {_allow} to true
+        if player has permission {_perm}:
+            set {_allow} to true
+        if {_allow} is true:
+            set {_args::*} to arg 1 split by " "
+            if arg 1 is not set:
+                set {_message::*} to collectors_getConfigurationValue("message-collector-help") split by "|nl|"
+                send {_message::*}
+
+            else if arg 1 is "give":
+                if arg 2 is set:
+                    if arg 2 is online:
+
+                        set {_amt} to arg 3 ? 1
+                        set {_item} to 1 of collectors_getConfigurationValue("item-item") parsed as item
+                        set {_item}'s name to collectors_getConfigurationValue("item-name")
+                        set {_item}'s lore to collectors_getConfigurationValue("item-lore") split by "|nl|"
+                        add {_amt} of {_item} to arg 2's inventory
+
+                        set {_message1::*} to collectors_getConfigurationValue("message-recieved-chunk-collector") split by "|nl|"
+                        replace all "{player}" with "%arg 2%" in {_message1::*}
+                        replace all "{amt}" with "%{_amt}%" in {_message1::*}
+
+                        set {_message2::*} to collectors_getConfigurationValue("message-given-chunk-collector") split by "|nl|"
+                        replace all "{player}" with "%arg 2%" in {_message2::*}
+                        replace all "{amt}" with "%{_amt}%" in {_message2::*}
+
+                        send {_message2::*} to sender
+                        send {_message1::*} to arg 2
+
+                    else:
+                        set {_message::*} to collectors_getConfigurationValue("message-player-specified-online") split by "|nl|"
+                        send {_message::*}
+                else:
+                    set {_message::*} to collectors_getConfigurationValue("message-incorrect-give-usage") split by "|nl|"
+                    send {_message::*}
+            
+            else if {_args::1} is "additem" or "itemadd":
+                set {_arg3} to "%arg 2%"
+                if {_args::2} is set:
+                    if {_args::2} contains "&":
+                        if {_arg3} is not "<none>":
+                            if 1 of player's tool is not 0 air:
+                                collectors_addDrop({_args::2}, 1 of player's tool, {_arg3} parsed as number)
+                                set {_message::*} to collectors_getConfigurationValue("message-item-added") split by "|nl|"
+                                replace all "{price}" with "%{_arg3}%" in {_message::*}
+                                replace all "{c}" with colored {_args::2} in {_message::*}
+                                replace all "{item}" with "%1 of player's tool%" in {_message::*}
+                                send {_message::*}
+                            else:
+                                set {_message::*} to collectors_getConfigurationValue("message-invalid-item") split by "|nl|"
+                                send {_message::*}
+                        else:
+                            set {_message::*} to collectors_getConfigurationValue("message-incorrect-additem-usage") split by "|nl|"
+                            send {_message::*}
+                    else:
+                        set {_message::*} to collectors_getConfigurationValue("message-specify-valid-colorcode") split by "|nl|"
+                        send {_message::*}
+                else:
+                    set {_message::*} to collectors_getConfigurationValue("message-incorrect-additem-usage") split by "|nl|"
+                    send {_message::*}
+
+            else if arg 1 is "gui":
+                collectors_openGui(player)
+
+            else if arg 1 is "reload":
+                set {_message::*} to collectors_getConfigurationValue("message-config-reloading") split by "|nl|"
+                send {_message::*}
+                execute console command "sk reload chunkCollectors/config"
+                set {_message::*} to collectors_getConfigurationValue("message-config-reloaded") split by "|nl|"
+                send {_message::*}
+            
+            else if arg 1 is "reloadall":
+                set {_message::*} to collectors_getConfigurationValue("message-all-reloading") split by "|nl|"
+                send {_message::*}
+                execute console command "sk reload chunkCollectors/config"
+                set {_message::*} to collectors_getConfigurationValue("message-all-reloaded") split by "|nl|"
+                send {_message::*}
+
+
+        else:
+            set {_message::*} to collectors_getConfigurationValue("message-no-permissions") split by "|nl|"
+            send {_message::*}
+on command:
+    set {_cmd::*} to "%full command%" split by " "
+    if {_cmd::1} is "f":
+        if {_cmd::2} is "collector":
+            cancel event
+            collectors_openGui(player)

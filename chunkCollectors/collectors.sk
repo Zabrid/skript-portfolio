@@ -1,0 +1,89 @@
+#
+# Zabrid Chunk Collectors
+#
+# Compatible Factions Plugin: SaberFactions
+#
+# Author: {zabrid}#3433
+#
+
+#
+# ! Do not go beyond this point !
+#
+
+import:
+	java.lang.Object
+	org.bukkit.event.Event
+	org.bukkit.event.entity.EntityEvent
+	org.bukkit.event.entity.EntityExplodeEvent
+	org.bukkit.entity.TNTPrimed
+	com.massivecraft.factions.event.FactionDisbandEvent
+	com.massivecraft.factions.FLocation
+	com.massivecraft.factions.Factions
+	com.massivecraft.factions.Board
+	com.massivecraft.factions.Faction
+	com.massivecraft.factions.FPlayers
+
+on place:
+    set {_item} to collectors_getConfigurationValue("item-item") parsed as item
+    if "a%type of event-block%a" is "a%{_item}%a":
+        name of event-block is collectors_getConfigurationValue("item-name")
+        set {_fac} to uncolored FPlayers.getInstance().getByPlayer(player).getFaction().getTag()
+        set {_id} to Factions.getInstance().getByTag({_fac}).getId()
+        if {_fac} is not "Wilderness":
+            set {_value} to yaml value "collectors.%{_id}%.%chunk at event-location%" from "collectors"
+            if {_value} is not set:
+                set {_message::*} to collectors_getConfigurationValue("message-successfully-placed-collector") split by "|nl|"
+                send {_message::*}
+                set yaml value "collectors.%{_id}%.%chunk at event-location%" from "collectors" to event-location
+                save yaml "collectors"
+            else:
+                cancel event
+                set {_message::*} to collectors_getConfigurationValue("message-already-collector-in-chunk") split by "|nl|"
+                send {_message::*}
+        else:
+            cancel event
+            set {_message::*} to collectors_getConfigurationValue("message-must-have-faction-to-place-collector") split by "|nl|"
+            send {_message::*}
+on left click:
+    set {_item} to collectors_getConfigurationValue("item-item")
+    if "a%type of clicked block%a" is "a%{_item}%a":
+        if collectors_getConfigurationValue("item-name") is clicked block's name:
+            if player's tool is any pickaxe:
+                loop yaml node keys "collectors" from "collectors":
+                    loop yaml node keys "collectors.%loop-value%" from "collectors":
+                        if "%loop-value-2%" is "%chunk at event-location%":
+                            delete yaml value "collectors.%loop-value-1%.%loop-value-2%" from "collectors"
+                            save yaml "collectors"
+                            set {_message::*} to collectors_getConfigurationValue("message-successfully-broke-collector") split by "|nl|"
+                            send {_message::*}
+                            set {_item} to 1 of collectors_getConfigurationValue("item-item") parsed as item
+                            set {_item}'s name to collectors_getConfigurationValue("item-name")
+                            set {_item}'s lore to collectors_getConfigurationValue("item-lore") split by "|nl|"
+                            set block at event-location to air
+                            add 1 of {_item} to player's inventory
+            else:
+                cancel event
+                set {_message::*} to collectors_getConfigurationValue("message-you-must-use-pickaxe-to-break-collectors") split by "|nl|"
+                send {_message::*}
+on item spawn:
+    event-entity is dropped cactus:
+    set {_floc} to new FLocation(event-entity's location)
+    set {_claim} to Board.getInstance().getFactionAt({_floc}).getTag()
+    set {_id} to Factions.getInstance().getByTag({_claim}).getId()
+    set {_value} to yaml value "collectors.%{_id}%.%chunk at event-entity's location%" from "collectors"
+    if {_value} is set:
+        collectors_addFacDrop({_id}, "cactus", 1)
+        clear event-entity
+on death:
+    victim is not a player
+    set {_floc} to new FLocation(victim's location)
+    set {_claim} to Board.getInstance().getFactionAt({_floc}).getTag()
+    set {_id} to Factions.getInstance().getByTag({_claim}).getId()
+    set {_value} to yaml value "collectors.%{_id}%.%chunk at event-entity's location%" from "collectors"
+    if {_value} is set:
+        set {_drops::*} to drops
+        loop {_drops::*}:
+            set {_a} to 1 of loop-value
+            if yaml value "drops.%{_a}%" from "drops" is set:
+                set {_amt} to item amount of loop-value
+                collectors_addFacDrop({_id}, "%{_a}%", {_amt})

@@ -1,0 +1,42 @@
+#
+# Zabrid Chunk Collectors
+#
+# Compatible Factions Plugin: SaberFactions
+#
+# Author: {zabrid}#3433
+#
+
+#
+# ! Do not go beyond this point !
+#
+
+on load:
+    load yaml "plugins/chunk-collectors/drops.yml" as "drops"
+    load yaml "plugins/chunk-collectors/collectors.yml" as "collectors"
+    load yaml "plugins/chunk-collectors/fac-collectors.yml" as "fac-collectors"
+on unload:
+    save yaml "fac-collectors"
+    save yaml "drops"
+    save yaml "collectors"
+function collectors_addDrop(color: text, item: item, price: number):
+    set yaml value "drops.%{_item}%.color" from "drops" to {_color}
+    set yaml value "drops.%{_item}%.price" from "drops" to {_price}
+    save yaml "drops"
+function collectors_addFacDrop(id: integer, val: text, amt: integer):
+    set {_value} to yaml value "%{_id}%.drops.%{_val}%" from "fac-collectors"
+    if {_value} is set:
+        set yaml value "%{_id}%.drops.%{_val}%" from "fac-collectors" to {_amt} + yaml value "%{_id}%.drops.%{_val}%" from "fac-collectors"
+    else:
+        set yaml value "%{_id}%.drops.%{_val}%" from "fac-collectors" to {_amt}
+function collectors_getFacDrop(id: integer, val: text) :: integer:
+    set {_value} to yaml value "%{_id}%.drops.%{_val}%" from "fac-collectors"
+    save yaml "fac-collectors"
+    return "%{_value}%" parsed as integer
+function collectors_clearFacDrop(id: integer, val: text):
+    delete yaml value "%{_id}%.drops.%{_val}%" from "fac-collectors"
+    save yaml "fac-collectors"
+function collectors_subtractFacDrop(id: integer, val: text, amt: integer):
+    set yaml value "%{_id}%.drops.%{_val}%" from "fac-collectors" to yaml value "%{_id}%.drops.%{_val}%" from "fac-collectors" - {_amt}
+    save yaml "fac-collectors"
+every 5 minutes:
+    save yaml "fac-collectors"
