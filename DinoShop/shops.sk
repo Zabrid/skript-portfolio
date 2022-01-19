@@ -1,0 +1,345 @@
+#
+# Hello kind traveler!
+# Thank you for downloading this script (:)
+# 
+# You can config the entire skript within the DinoShop folder found in the plugins directory.
+# Although, if you do want to change the code feel free too, although if you do change it
+# please do not resell, and please give me credit. Thanks (:
+#
+# Join the support discord: https://discord.gg/PN5RTJ5Hv2
+# View the spigot plugin page: https://www.spigotmc.org/
+#
+
+#
+# Do not go beyond this point if you're unexperienced with skript.
+#
+
+expression number of %itemstack% %inventory% can hold:
+	get:
+		loop ...expr-2.getContents():
+			if loop-value is not set:
+				add max stack of expr-1 to {_a}
+			else if 1 of loop-value is 1 of expr-1:
+				add (expr-1.getMaxStackSize()) - (loop-value.getAmount()) to {_a}
+		return {_a} ? 0
+
+options:
+	aliases: /shop, /shopmenu, /dinoshop
+	directory: plugins/DinoShop/
+
+function ds_openShopMenu(p: player, shop: text):
+	set {_prefix} to ds_getYamlValue("Prefix")
+	if 1 is 1:
+		loop yaml node keys "Shops.%{_shop}%" from "{@directory}shops.yml":
+			set {_allow} to true
+			set {_GuiName} to (yaml value "Shops.%{_shop}%.Gui.Name" from "{@directory}shops.yml")
+			set {_slots} to (yaml value "Shops.%{_shop}%.Gui.Rows" from "{@directory}shops.yml")
+
+			set {_fillItem} to (yaml value "Shops.%{_shop}%.Gui.FillItem.Item" from "{@directory}shops.yml") parsed as item
+
+			create a gui with virtual chest with {_slots} rows named {_GuiName}:
+				if {_fillItem} is not air:
+					set name of {_fillItem} to ds_getYamlValue("Menu.FillItem.Name")
+					make gui slot (all integers between 0 and ({_slots} * 9)) with 1 of {_fillItem}
+				loop yaml node keys "Shops.%{_shop}%.Items" from "{@directory}shops.yml":
+					set {_item2} to (yaml value "Shops.%{_shop}%.Items.%loop-value-2%.Item" from "{@directory}shops.yml")
+					set {_item} to (yaml value "Shops.%{_shop}%.Items.%loop-value-2%.Item" from "{@directory}shops.yml") parsed as item
+					set {_command} to (yaml value "Shops.%{_shop}%.Items.%loop-value-2%.Command" from "{@directory}shops.yml")
+					set {_name} to (yaml value "Shops.%{_shop}%.Items.%loop-value-2%.DisplayName" from "{@directory}shops.yml")
+					set {_slot} to (yaml value "Shops.%{_shop}%.Items.%loop-value-2%.Slot" from "{@directory}shops.yml")
+					set {_lore::*} to (yaml value "Shops.%{_shop}%.Items.%loop-value-2%.Lore" from "{@directory}shops.yml") split by "|nl|"
+					set {_buy} to (yaml value "Shops.%{_shop}%.Items.%loop-value-2%.BuyPrice" from "{@directory}shops.yml")
+					set {_sell} to (yaml value "Shops.%{_shop}%.Items.%loop-value-2%.SellPrice" from "{@directory}shops.yml")
+					set {_purchaseItem} to {_item}
+					set lore of {_purchaseItem} to {_lore::*}
+					add "%loop-value-2%" to {_gone::*}
+					if {_command} is "false":
+						if "%{_buy}%||%{_sell}%" does not contain "<none>":
+							set {_MainLore::*} to (yaml value "Lores.BuyAndSell" from "{@directory}config.yml") split by "|nl|"
+						else if {_buy} is set:
+							set {_MainLore::*} to (yaml value "Lores.Buy" from "{@directory}config.yml") split by "|nl|"
+						else if {_sell} is set:
+							set {_MainLore::*} to (yaml value "Lores.Sell" from "{@directory}config.yml") split by "|nl|"
+					else:
+						set {_MainLore::*} to (yaml value "Lores.Command" from "{@directory}config.yml") split by "|nl|"
+					replace all "{buy}" with "%{_buy}%" in {_MainLore::*}
+					replace all "{sell}" with "%{_sell}%" in {_MainLore::*}
+					set name of {_item} to {_name}
+					set lore of {_item} to {_lore::*} and {_MainLore::*}
+					make gui slot {_slot} with {_item}:
+						if click type is left mouse button:
+							if {_buy} is set:
+								if {_command} is not "false":
+									ds_openCommandPurchaseMenu(player, {_shop}, {_item}, {_buy}, "%{_name} ? {item2}%", {_purchaseItem}, {_command})
+								else:
+									ds_openItemPurchaseMenu(player, {_shop}, {_item}, {_buy}, "%{_name} ? {_item2}%", {_purchaseItem}, "%{_item2}%")
+							else:
+								set {_message} to (yaml value "Messages.CannotBuy" from "{@directory}messages.yml")
+								send "%{_prefix}%%{_message}%"
+						else if click type is right mouse button:
+							if {_sell} is set:
+								ds_openItemSellMenu(player, {_shop}, {_item}, {_sell}, "%{_name} ? {item2}%", {_item2})
+							else:
+								set {_message} to (yaml value "Messages.CannotSell" from "{@directory}messages.yml")
+								send "%{_prefix}%%{_message}%"
+					set {_BackButton} to (yaml value "Shops.%{_shop}%.Gui.BackButton.Item" from "{@directory}shops.yml") parsed as item
+					set name of {_backButton} to (yaml value "Shops.%{_shop}%.Gui.BackButton.Name" from "{@directory}shops.yml")
+					set lore of {_backButton} to (yaml value "Shops.%{_shop}%.Gui.BackButton.Lore" from "{@directory}shops.yml") split by "|nl|"
+					set {_slot} to (yaml value "Shops.%{_shop}%.Gui.BackButton.Slot" from "{@directory}shops.yml")
+					make gui slot {_slot} with {_BackButton}:
+						execute player command "shop"
+
+			open the last gui for {_p}
+	if {_allow} is not set:
+		set {_message} to (yaml value "Messages.InvalidShopSpecified" from "{@directory}messages.yml")
+		replace all "{shop}" with "%{_shop}%" in {_message}
+		send "%{_prefix}%%{_message}%" to {_p}
+function ds_openItemPurchaseMenu(p: player, previousShop: text, i: item, price: number, itemName: text, purchaseItem: item, item4: text):
+	set {_prefix} to ds_getYamlValue("Prefix")
+	set {_guiName} to ds_getYamlValue("PurchaseGui.Gui.Name")
+	replace "{item}" in {_guiName} with "%{_itemName}%"
+	set {_cancel} to ds_getYamlValue("PurchaseGui.CancelPurchase.Item") parsed as item
+	set name of {_cancel} to ds_getYamlValue("PurchaseGui.CancelPurchase.Name")
+	set lore of {_cancel} to ds_getYamlValue("PurchaseGui.CancelPurchase.Lore") split by "|nl|"
+
+	set {_purchaseOne} to ds_getYamlValue("PurchaseGui.PurchaseOne.Item") parsed as item
+	set name of {_purchaseOne} to ds_getYamlValue("PurchaseGui.PurchaseOne.Name")
+	set {_lore::*} to ds_getYamlValue("PurchaseGui.PurchaseOne.Lore") split by "|nl|"
+	replace all "{price}" with "%{_price} * 1%" in {_lore::*}
+	set lore of {_purchaseOne} to {_lore::*}
+
+	set {_purchaseStack} to ds_getYamlValue("PurchaseGui.PurchaseStack.Item") parsed as item
+	set name of {_purchaseStack} to ds_getYamlValue("PurchaseGui.PurchaseStack.Name")
+	set {_lore::*} to ds_getYamlValue("PurchaseGui.PurchaseStack.Lore") split by "|nl|"
+	replace all "{price}" with "%{_price} * 64%" in {_lore::*}
+	set lore of {_purchaseStack} to {_lore::*}
+
+	set {_amtCanHold} to number of {_i} {_p}'s inventory can hold - 320
+	set {_purchaseInventory} to ds_getYamlValue("PurchaseGui.PurchaseInventory.Item") parsed as item
+	set name of {_purchaseInventory} to ds_getYamlValue("PurchaseGui.PurchaseInventory.Name")
+	set {_lore::*} to ds_getYamlValue("PurchaseGui.PurchaseInventory.Lore") split by "|nl|"
+	replace all "{price}" with "%{_price} * {_amtCanHold}%" in {_lore::*}
+	replace all "{amt}" with "%{_amtCanHold}%" in {_lore::*}
+	set lore of {_purchaseInventory} to {_lore::*}
+
+	set {_fillItem} to ds_getYamlValue("PurchaseGui.FillItem.Item") parsed as item
+	set name of {_fillItem} to ds_getYamlValue("PurchaseGui.FillItem.Name")
+
+	create a gui with virtual chest with 3 rows named {_guiName}:
+		make gui slot (all integers between 0 and (9 * 3)) with 1 of {_fillItem}
+		make gui slot 13 with {_i}
+		make gui slot 0 and 1 and 2 and 9 and 10 and 11 and 18 and 19 and 20 to {_cancel}:
+			ds_openShopMenu({_p}, {_previousShop})
+		make gui slot 6 and 15 and 24 to {_purchaseOne}:
+			set {_amt} to 1
+			set {_price2} to {_price} * {_amt}
+			if {_p}'s balance is greater than or equal to {_price2}:
+				set {_message} to (yaml value "Messages.SuccessfulPurchase" from "{@directory}messages.yml")
+				replace all "{amt}" with "%{_amt}%" in {_message}
+				replace all "{item}" with "%{_itemName}%" in {_message}
+				replace all "{money}" with "%{_price2}%" in {_message}
+				send "%{_prefix}%%{_message}%" to {_p}
+				add {_amt} of {_purchaseItem} to {_p}'s inventory
+			else:
+				set {_message} to (yaml value "Messages.NotEnoughBuy" from "{@directory}messages.yml")
+				send "%{_prefix}%%{_message}%" to {_p}
+			
+		make gui slot 7 and 16 and 25 to {_purchaseStack}:
+			set {_amt} to 64
+			set {_price2} to {_price} * {_amt}
+			if {_p}'s balance is greater than or equal to {_price2}:
+				set {_message} to (yaml value "Messages.SuccessfulPurchase" from "{@directory}messages.yml")
+				replace all "{amt}" with "%{_amt}%" in {_message}
+				replace all "{item}" with "%{_itemName}%" in {_message}
+				replace all "{money}" with "%{_price2}%" in {_message}
+				send "%{_prefix}%%{_message}%" to {_p}
+				remove {_price2} from {_p}'s balance
+				add {_amt} of {_purchaseItem} to {_p}'s inventory
+			else:
+				set {_message} to (yaml value "Messages.NotEnoughBuy" from "{@directory}messages.yml")
+				send "%{_prefix}%%{_message}%" to {_p}
+			
+		make gui slot 8 and 17 and 26 to {_purchaseInventory}:
+			set {_amtCanHold} to number of {_i} {_p}'s inventory can hold - 320
+			set {_amt} to {_amtCanHold}
+			set {_price2} to {_price} * {_amt}
+			if {_p}'s balance is greater than or equal to {_price2}:
+				set {_message} to (yaml value "Messages.SuccessfulPurchase" from "{@directory}messages.yml")
+				replace all "{amt}" with "%{_amt}%" in {_message}
+				replace all "{item}" with "%{_itemName}%" in {_message}
+				replace all "{money}" with "%{_price2}%" in {_message}
+				send "%{_prefix}%%{_message}%" to {_p}
+				remove {_price2} from {_p}'s balance
+				add {_amt} of {_purchaseItem} to {_p}'s inventory
+			else:
+				set {_message} to (yaml value "Messages.NotEnoughBuy" from "{@directory}messages.yml")
+				send "%{_prefix}%%{_message}%" to {_p}
+
+			
+	open the last gui for {_p}
+function ds_openCommandPurchaseMenu(p: player, previousShop: text, i: item, price: number, itemName: text, purchaseItem: item, command: text):
+	set {_prefix} to ds_getYamlValue("Prefix")
+	set {_guiName} to ds_getYamlValue("PurchaseGui.Gui.Name")
+	replace "{item}" in {_guiName} with "%{_itemName}%"
+	set {_cancel} to ds_getYamlValue("PurchaseGui.CancelPurchase.Item") parsed as item
+	set name of {_cancel} to ds_getYamlValue("PurchaseGui.CancelPurchase.Name")
+	set lore of {_cancel} to ds_getYamlValue("PurchaseGui.CancelPurchase.Lore") split by "|nl|"
+
+	set {_purchaseOne} to ds_getYamlValue("PurchaseGui.PurchaseOne.Item") parsed as item
+	set name of {_purchaseOne} to ds_getYamlValue("PurchaseGui.PurchaseOne.Name")
+	set {_lore::*} to ds_getYamlValue("PurchaseGui.PurchaseOne.Lore") split by "|nl|"
+	replace all "{price}" with "%{_price} * 1%" in {_lore::*}
+	set lore of {_purchaseOne} to {_lore::*}
+
+	set {_purchaseStack} to ds_getYamlValue("PurchaseGui.PurchaseStack.Item") parsed as item
+	set name of {_purchaseStack} to ds_getYamlValue("PurchaseGui.PurchaseStack.Name")
+	set {_lore::*} to ds_getYamlValue("PurchaseGui.PurchaseStack.Lore") split by "|nl|"
+	replace all "{price}" with "%{_price} * 64%" in {_lore::*}
+	set lore of {_purchaseStack} to {_lore::*}
+
+	set {_amtCanHold} to number of {_i} {_p}'s inventory can hold - 320
+	set {_purchaseInventory} to ds_getYamlValue("PurchaseGui.PurchaseInventory.Item") parsed as item
+	set name of {_purchaseInventory} to ds_getYamlValue("PurchaseGui.PurchaseInventory.Name")
+	set {_lore::*} to ds_getYamlValue("PurchaseGui.PurchaseInventory.Lore") split by "|nl|"
+	replace all "{price}" with "%{_price} * {_amtCanHold}%" in {_lore::*}
+	replace all "{amt}" with "%{_amtCanHold}%" in {_lore::*}
+	set lore of {_purchaseInventory} to {_lore::*}
+
+	set {_fillItem} to ds_getYamlValue("PurchaseGui.FillItem.Item") parsed as item
+	set name of {_fillItem} to ds_getYamlValue("PurchaseGui.FillItem.Name")
+
+	create a gui with virtual chest with 3 rows named {_guiName}:
+		make gui slot (all integers between 0 and (9 * 3)) with 1 of {_fillItem}
+		make gui slot 13 with {_i}
+		make gui slot 0 and 1 and 2 and 9 and 10 and 11 and 18 and 19 and 20 to {_cancel}:
+			ds_openShopMenu({_p}, {_previousShop})
+		make gui slot 6 and 15 and 24 to {_purchaseOne}:
+			set {_amt} to 1
+			set {_price2} to {_price} * {_amt}
+			replace all "{amt}" with "%{_amt}%" in {_command}
+			replace all "{player}" with "%{_p}%" in {_command}
+			if {_p}'s balance is greater than or equal to {_price2}:
+				set {_message} to (yaml value "Messages.SuccessfulPurchase" from "{@directory}messages.yml")
+				replace all "{amt}" with "%{_amt}%" in {_message}
+				replace all "{item}" with "%{_itemName}%" in {_message}
+				replace all "{money}" with "%{_price2}%" in {_message}
+				send "%{_prefix}%%{_message}%" to {_p}
+				remove {_price2} from {_p}'s balance
+				execute console command {_command}
+			else:
+				set {_message} to (yaml value "Messages.NotEnoughBuy" from "{@directory}messages.yml")
+				send "%{_prefix}%%{_message}%" to {_p}
+			
+		make gui slot 7 and 16 and 25 to {_purchaseStack}:
+			set {_amt} to 64
+			set {_price2} to {_price} * {_amt}
+			replace all "{amt}" with "%{_amt}%" in {_command}
+			replace all "{player}" with "%{_p}%" in {_command}
+			if {_p}'s balance is greater than or equal to {_price2}:
+				set {_message} to (yaml value "Messages.SuccessfulPurchase" from "{@directory}messages.yml")
+				replace all "{amt}" with "%{_amt}%" in {_message}
+				replace all "{item}" with "%{_itemName}%" in {_message}
+				replace all "{money}" with "%{_price2}%" in {_message}
+				send "%{_prefix}%%{_message}%" to {_p}
+				remove {_price2} from {_p}'s balance
+				execute console command {_command}
+			else:
+				set {_message} to (yaml value "Messages.NotEnoughBuy" from "{@directory}messages.yml")
+				send "%{_prefix}%%{_message}%" to {_p}
+			
+		make gui slot 8 and 17 and 26 to {_purchaseInventory}:
+			set {_amtCanHold} to number of {_i} {_p}'s inventory can hold - 320
+			set {_amt} to {_amtCanHold}
+			set {_price2} to {_price} * {_amt}
+			replace all "{amt}" with "%{_amt}%" in {_command}
+			replace all "{player}" with "%{_p}%" in {_command}
+			if {_p}'s balance is greater than or equal to {_price2}:
+				set {_message} to (yaml value "Messages.SuccessfulPurchase" from "{@directory}messages.yml")
+				replace all "{amt}" with "%{_amt}%" in {_message}
+				replace all "{item}" with "%{_itemName}%" in {_message}
+				replace all "{money}" with "%{_price2}%" in {_message}
+				send "%{_prefix}%%{_message}%" to {_p}
+				remove {_price2} from {_p}'s balance
+				execute console command {_command}
+			else:
+				set {_message} to (yaml value "Messages.NotEnoughBuy" from "{@directory}messages.yml")
+				send "%{_prefix}%%{_message}%" to {_p}
+			
+	open the last gui for {_p}
+
+function ds_openItemSellMenu(p: player, previousShop: text, i: item, price: number, itemName: text, actualItem: text):
+	set {_prefix} to ds_getYamlValue("Prefix")
+	set {_guiName} to ds_getYamlValue("SellGui.Gui.Name")
+	replace "{item}" in {_guiName} with "%{_itemName}%"
+	set {_cancel} to ds_getYamlValue("SellGui.Cancelsell.Item") parsed as item
+	set name of {_cancel} to ds_getYamlValue("SellGui.Cancelsell.Name")
+	set lore of {_cancel} to ds_getYamlValue("SellGui.Cancelsell.Lore") split by "|nl|"
+
+	set {_sellOne} to ds_getYamlValue("SellGui.sellOne.Item") parsed as item
+	set name of {_sellOne} to ds_getYamlValue("SellGui.sellOne.Name")
+	set {_lore::*} to ds_getYamlValue("SellGui.sellOne.Lore") split by "|nl|"
+	replace all "{price}" with "%{_price} * 1%" in {_lore::*}
+	set lore of {_sellOne} to {_lore::*}
+
+	set {_sellStack} to ds_getYamlValue("SellGui.sellStack.Item") parsed as item
+	set name of {_sellStack} to ds_getYamlValue("SellGui.sellStack.Name")
+	set {_lore::*} to ds_getYamlValue("SellGui.sellStack.Lore") split by "|nl|"
+	replace all "{price}" with "%{_price} * 64%" in {_lore::*}
+	set lore of {_sellStack} to {_lore::*}
+
+	set {_amtCanHold} to number of {_i} {_p}'s inventory can hold - 320
+	set {_sellInventory} to ds_getYamlValue("SellGui.sellInventory.Item") parsed as item
+	set name of {_sellInventory} to ds_getYamlValue("SellGui.sellInventory.Name")
+	set {_lore::*} to ds_getYamlValue("SellGui.sellInventory.Lore") split by "|nl|"
+	replace all "{price}" with "%{_price} * {_amtCanHold}%" in {_lore::*}
+	replace all "{amt}" with "%{_amtCanHold}%" in {_lore::*}
+	set lore of {_sellInventory} to {_lore::*}
+
+	set {_fillItem} to ds_getYamlValue("SellGui.FillItem.Item") parsed as item
+	set name of {_fillItem} to ds_getYamlValue("SellGui.FillItem.Name")
+
+	create a gui with virtual chest with 3 rows named {_guiName}:
+		make gui slot (all integers between 0 and (9 * 3)) with 1 of {_fillItem}
+		make gui slot 13 with {_i}
+		make gui slot 0 and 1 and 2 and 9 and 10 and 11 and 18 and 19 and 20 to {_cancel}:
+			ds_openShopMenu({_p}, {_previousShop})
+		make gui slot 6 and 15 and 24 to {_sellOne}:
+			set {_amt} to amount of {_actualItem} parsed as item in {_p}'s inventory
+			if {_amt} is greater than or equal to 1:
+				add {_price} to {_p}'s balance
+				set {_message} to (yaml value "Messages.SuccessfulSell" from "{@directory}messages.yml")
+				replace all "{amt}" with "1" in {_message}
+				replace all "{item}" with "%{_itemName}%" in {_message}
+				replace all "{money}" with "%{_price}%" in {_message}
+				send "%{_prefix}%%{_message}%" to {_p}
+				remove 1 of {_actualItem} parsed as item from {_p}'s inventory
+			else:
+				set {_message} to (yaml value "Messages.NotEnoughSell" from "{@directory}messages.yml")
+				send "%{_prefix}%%{_message}%" to {_p}
+		make gui slot 7 and 16 and 25 to {_sellStack}:
+			set {_amt} to amount of {_actualItem} parsed as item in {_p}'s inventory
+			if {_amt} is greater than or equal to 64:
+				add {_price} * 64 to {_p}'s balance
+				set {_message} to (yaml value "Messages.SuccessfulSell" from "{@directory}messages.yml")
+				replace all "{amt}" with "64" in {_message}
+				replace all "{item}" with "%{_itemName}%" in {_message}
+				replace all "{money}" with "%{_price} * 64%" in {_message}
+				send "%{_prefix}%%{_message}%" to {_p}
+				remove 64 of {_actualItem} parsed as item from {_p}'s inventory
+			else:
+				set {_message} to (yaml value "Messages.NotEnoughSell" from "{@directory}messages.yml")
+				send "%{_prefix}%%{_message}%" to {_p}
+		make gui slot 8 and 17 and 26 to {_sellInventory}:
+			set {_amt} to amount of {_actualItem} parsed as item in {_p}'s inventory
+			if {_amt} is greater than 0:
+				add {_price} * {_amt} to {_p}'s balance
+				set {_message} to (yaml value "Messages.SuccessfulSell" from "{@directory}messages.yml")
+				replace all "{amt}" with "%{_amt}%" in {_message}
+				replace all "{item}" with "%{_itemName}%" in {_message}
+				replace all "{money}" with "%{_price} * {_amt}%" in {_message}
+				send "%{_prefix}%%{_message}%" to {_p}
+				remove {_amt} of {_actualItem} parsed as item from {_p}'s inventory
+			else:
+				set {_message} to (yaml value "Messages.NotEnoughSell" from "{@directory}messages.yml")
+				send "%{_prefix}%%{_message}%" to {_p}
+	open the last gui for {_p}

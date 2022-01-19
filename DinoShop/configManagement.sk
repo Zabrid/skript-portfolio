@@ -1,0 +1,191 @@
+#
+# Hello kind traveler!
+# Thank you for downloading this script (:)
+# 
+# You can config the entire skript within the DinoShop folder found in the plugins directory.
+# Although, if you do want to change the code feel free too, although if you do change it
+# please do not resell, and please give me credit. Thanks (:
+#
+# Join the support discord: https://discord.gg/PN5RTJ5Hv2
+# View the spigot plugin page: https://www.spigotmc.org/
+#
+
+#
+# Do not go beyond this point if you're unexperienced with skript.
+#
+
+options:
+	directory: plugins/DinoShop/
+	configHeader: "Thank you for downloading this script Kind Traveler." and "All the config options you need are located here." and "You can also config messages, and other options in the:" and "- messages.yml" and "- shops.yml" and "" and "Join the support discord: https://discord.gg/PN5RTJ5Hv2" and "View the spigot plugin page: https://www.spigotmc.org/"
+
+on load:
+	ds_ReloadConfigs()
+	
+function ds_ReloadConfigs():
+	send "[DinoShop] Loading Configuration Files" to console
+	load yaml "{@directory}config.yml" as "{@directory}config.yml"
+	load yaml "{@directory}shops.yml" as "{@directory}shops.yml"
+	load yaml "{@directory}messages.yml" as "{@directory}messages.yml"
+	if skript-yaml "{@directory}config.yml" is empty:
+		send "[DinoShop] Generating config.yml file." to console
+		set skript-yaml value "Prefix" from "{@directory}config.yml" to "&b&lShop &8->&7 "
+		set the comment of yaml node "Prefix" from "{@directory}config.yml" to {@configHeader}
+
+		set skript-yaml value "Menu.Name" from "{@directory}config.yml" to "&b&lShop Categories"
+		set skript-yaml value "Menu.Rows" from "{@directory}config.yml" to 4
+		set skript-yaml value "Menu.FillItem.Item" from "{@directory}config.yml" to "Black Stained Glass Pane"
+		set skript-yaml value "Menu.FillItem.Name" from "{@directory}config.yml" to "&7"
+
+		set skript-yaml value "Lores.BuyAndSell" from "{@directory}config.yml" to "&7|nl|&b&l * &fBuy Price: &b${buy}|nl|&b&l * &fSell Price: &b${sell}|nl|&7|nl|&7Left click to purchase this item.|nl|&7Right click to purchase this item.|nl|&7"
+		set skript-yaml value "Lores.Buy" from "{@directory}config.yml" to "&7|nl|&b&l * &fBuy Price: &b${buy}|nl|&7|nl|&7Left click to purchase this item.|nl|&7"
+		set skript-yaml value "Lores.Sell" from "{@directory}config.yml" to "&7|nl|&b&l * &fSell Price: &b${sell}|nl|&7|nl|&7Right click to purchase this item.|nl|&7"
+		set skript-yaml value "Lores.Command" from "{@directory}config.yml" to "&7|nl|&b&l * &fBuy Price: &b${buy}|nl|&7|nl|&7Left click to purchase this item.|nl|&7"
+
+		set skript-yaml value "PurchaseGui.Gui.Name" from "{@directory}config.yml" to "&b&lPurchase &8(&7{item}&8)"
+
+		set skript-yaml value "PurchaseGui.FillItem.Item" from "{@directory}config.yml" to "Black Stained Glass Pane"
+		set skript-yaml value "PurchaseGui.FillItem.Name" from "{@directory}config.yml" to "&7"
+
+		set skript-yaml value "PurchaseGui.CancelPurchase.Name" from "{@directory}config.yml" to "&c&lCancel Transaction"
+		set skript-yaml value "PurchaseGui.CancelPurchase.Item" from "{@directory}config.yml" to "Red Stained Glass Pane"
+		set skript-yaml value "PurchaseGui.CancelPurchase.Lore" from "{@directory}config.yml" to "&7Click to cancel this purchase."
+
+		set skript-yaml value "PurchaseGui.PurchaseOne.Name" from "{@directory}config.yml" to "&a&lPurchase One"
+		set skript-yaml value "PurchaseGui.PurchaseOne.Item" from "{@directory}config.yml" to "Lime Stained Glass Pane"
+		set skript-yaml value "PurchaseGui.PurchaseOne.Lore" from "{@directory}config.yml" to "&7|nl|&b&l * &fAmount: &b1|nl|&b&l * &fPrice: &b${price}|nl|&7|nl|&7Click to purchase one."
+
+		set skript-yaml value "PurchaseGui.PurchaseStack.Name" from "{@directory}config.yml" to "&a&lPurchase a Stack"
+		set skript-yaml value "PurchaseGui.PurchaseStack.Item" from "{@directory}config.yml" to "Green Stained Glass Pane"
+		set skript-yaml value "PurchaseGui.PurchaseStack.Lore" from "{@directory}config.yml" to "&7|nl|&b&l * &fAmount: &b64|nl|&b&l * &fPrice: &b${price}|nl|&7|nl|&7Click to purchase one."
+
+		set skript-yaml value "PurchaseGui.PurchaseInventory.Name" from "{@directory}config.yml" to "&a&lPurchase an Inventory"
+		set skript-yaml value "PurchaseGui.PurchaseInventory.Item" from "{@directory}config.yml" to "Yellow Stained Glass Pane"
+		set skript-yaml value "PurchaseGui.PurchaseInventory.Lore" from "{@directory}config.yml" to "&7|nl|&b&l * &fAmount: &b{amt}|nl|&b&l * &fPrice: &b${price}|nl|&7|nl|&7Click to purchase one."
+
+		set skript-yaml value "SellGui.Gui.Name" from "{@directory}config.yml" to "&b&lSell &8(&7{item}&8)"
+
+		set skript-yaml value "SellGui.FillItem.Item" from "{@directory}config.yml" to "Black Stained Glass Pane"
+		set skript-yaml value "SellGui.FillItem.Name" from "{@directory}config.yml" to "&7"
+
+		set skript-yaml value "SellGui.Cancelsell.Name" from "{@directory}config.yml" to "&c&lCancel Transaction"
+		set skript-yaml value "SellGui.Cancelsell.Item" from "{@directory}config.yml" to "Red Stained Glass Pane"
+		set skript-yaml value "SellGui.Cancelsell.Lore" from "{@directory}config.yml" to "&7Click to cancel this transaction."
+
+		set skript-yaml value "SellGui.sellOne.Name" from "{@directory}config.yml" to "&a&lSell One"
+		set skript-yaml value "SellGui.sellOne.Item" from "{@directory}config.yml" to "Lime Stained Glass Pane"
+		set skript-yaml value "SellGui.sellOne.Lore" from "{@directory}config.yml" to "&7|nl|&b&l * &fAmount: &b1|nl|&b&l * &fPrice: &b${price}|nl|&7|nl|&7Click to sell one."
+
+		set skript-yaml value "SellGui.sellStack.Name" from "{@directory}config.yml" to "&a&lSell a Stack"
+		set skript-yaml value "SellGui.sellStack.Item" from "{@directory}config.yml" to "Green Stained Glass Pane"
+		set skript-yaml value "SellGui.sellStack.Lore" from "{@directory}config.yml" to "&7|nl|&b&l * &fAmount: &b64|nl|&b&l * &fPrice: &b${price}|nl|&7|nl|&7Click to sell one."
+
+		set skript-yaml value "SellGui.sellInventory.Name" from "{@directory}config.yml" to "&a&lSell your Inventory"
+		set skript-yaml value "SellGui.sellInventory.Item" from "{@directory}config.yml" to "Yellow Stained Glass Pane"
+		set skript-yaml value "SellGui.sellInventory.Lore" from "{@directory}config.yml" to "&7|nl|&b&l * &fAmount: &b{amt}|nl|&b&l * &fPrice: &b${price}|nl|&7|nl|&7Click to sell one."
+
+		wait 1 tick
+		save yaml "{@directory}config.yml"
+	if skript-yaml "{@directory}shops.yml" is empty:
+		send "[DinoShop] Generating shops.yml file." to console
+
+		set skript-yaml value "Shops.Blocks.HomeGui.Name" from "{@directory}shops.yml" to "&6&lBlocks Shop"
+		set skript-yaml value "Shops.Blocks.HomeGui.Item" from "{@directory}shops.yml" to "Stone"
+		set skript-yaml value "Shops.Blocks.HomeGui.Lore" from "{@directory}shops.yml" to "&7Line1|nl|&dLine2"
+		set skript-yaml value "Shops.Blocks.HomeGui.Slot" from "{@directory}shops.yml" to 0
+
+		set skript-yaml value "Shops.Blocks.Gui.Name" from "{@directory}shops.yml" to "&6&lBlocks Shop"
+		set skript-yaml value "Shops.Blocks.Gui.Rows" from "{@directory}shops.yml" to 6
+
+		set skript-yaml value "Shops.Blocks.Gui.FillItem.Item" from "{@directory}shops.yml" to "Black Stained Glass Pane"
+		set skript-yaml value "Shops.Blocks.Gui.FillItem.Name" from "{@directory}shops.yml" to "&7"
+
+		set skript-yaml value "Shops.Blocks.Gui.BackButton.Item" from "{@directory}shops.yml" to "Barrier"
+		set skript-yaml value "Shops.Blocks.Gui.BackButton.Name" from "{@directory}shops.yml" to "&c&lBack"
+		set skript-yaml value "Shops.Blocks.Gui.BackButton.Lore" from "{@directory}shops.yml" to "&7Click Here|nl|&7To return to the home screen."
+		set skript-yaml value "Shops.Blocks.Gui.BackButton.Slot" from "{@directory}shops.yml" to 49
+
+		set skript-yaml value "Shops.Blocks.Items.1.Item" from "{@directory}shops.yml" to "Stone"
+		set skript-yaml value "Shops.Blocks.Items.1.DisplayName" from "{@directory}shops.yml" to "&fItem With Lore Example"
+		set skript-yaml value "Shops.Blocks.Items.1.Command" from "{@directory}shops.yml" to "False"
+		set skript-yaml value "Shops.Blocks.Items.1.Lore" from "{@directory}shops.yml" to "&7Line1|nl|&dLine2"
+		set skript-yaml value "Shops.Blocks.Items.1.Slot" from "{@directory}shops.yml" to 0
+		set skript-yaml value "Shops.Blocks.Items.1.BuyPrice" from "{@directory}shops.yml" to 100
+		set skript-yaml value "Shops.Blocks.Items.1.SellPrice" from "{@directory}shops.yml" to 100
+		set the comment of yaml node "Shops" from "{@directory}shops.yml" to "Use the command /shop gethelditem in-game to get" and "Skript's item id for each item as it" and "is different from other plugins." and ""
+
+		set skript-yaml value "Shops.Blocks.Items.2.Item" from "{@directory}shops.yml" to "Mob Spawner"
+		set skript-yaml value "Shops.Blocks.Items.2.DisplayName" from "{@directory}shops.yml" to "&fCommand Example"
+		set skript-yaml value "Shops.Blocks.Items.2.Command" from "{@directory}shops.yml" to "ss give {player} zombie {amt}"
+		set skript-yaml value "Shops.Blocks.Items.2.Lore" from "{@directory}shops.yml" to "&7This is for spawners,"
+		set skript-yaml value "Shops.Blocks.Items.2.Slot" from "{@directory}shops.yml" to 1
+		set skript-yaml value "Shops.Blocks.Items.2.BuyPrice" from "{@directory}shops.yml" to 100
+
+		set skript-yaml value "Shops.Blocks.Items.3.Item" from "{@directory}shops.yml" to "Cobblestone"
+		set skript-yaml value "Shops.Blocks.Items.3.Command" from "{@directory}shops.yml" to "False"
+		set skript-yaml value "Shops.Blocks.Items.3.Slot" from "{@directory}shops.yml" to 2
+		set skript-yaml value "Shops.Blocks.Items.3.BuyPrice" from "{@directory}shops.yml" to 100
+		set skript-yaml value "Shops.Blocks.Items.3.SellPrice" from "{@directory}shops.yml" to 100
+
+		set skript-yaml value "Shops.Blocks.Items.4.Item" from "{@directory}shops.yml" to "Red Wool"
+		set skript-yaml value "Shops.Blocks.Items.4.DisplayName" from "{@directory}shops.yml" to "&fUnsellable Item"
+		set skript-yaml value "Shops.Blocks.Items.4.Command" from "{@directory}shops.yml" to "False"
+		set skript-yaml value "Shops.Blocks.Items.4.Slot" from "{@directory}shops.yml" to 3
+		set skript-yaml value "Shops.Blocks.Items.4.BuyPrice" from "{@directory}shops.yml" to 100
+		#set skript-yaml value "Shops.Blocks.Items.3.SellPrice" from "{@directory}shops.yml" to 100
+
+		set skript-yaml value "Shops.Blocks.Items.5.Item" from "{@directory}shops.yml" to "Orange Wool"
+		set skript-yaml value "Shops.Blocks.Items.5.DisplayName" from "{@directory}shops.yml" to "&fUnpurchasable Item"
+		set skript-yaml value "Shops.Blocks.Items.5.Command" from "{@directory}shops.yml" to "False"
+		set skript-yaml value "Shops.Blocks.Items.5.Slot" from "{@directory}shops.yml" to 4
+		set skript-yaml value "Shops.Blocks.Items.5.SellPrice" from "{@directory}shops.yml" to 100
+		#set skript-yaml value "Shops.Blocks.Items.4.BuyPrice" from "{@directory}shops.yml" to 100
+
+		set skript-yaml value "Shops.Example.HomeGui.Name" from "{@directory}shops.yml" to "&c&lExample Shop"
+		set skript-yaml value "Shops.Example.HomeGui.Item" from "{@directory}shops.yml" to "White Wool"
+		set skript-yaml value "Shops.Example.HomeGui.Lore" from "{@directory}shops.yml" to "&7This is a second shop to show|nl|&7how to make multiple shops."
+		set skript-yaml value "Shops.Example.HomeGui.Slot" from "{@directory}shops.yml" to 1
+
+		set skript-yaml value "Shops.Example.Gui.Name" from "{@directory}shops.yml" to "&c&lExample Shop"
+		set skript-yaml value "Shops.Example.Gui.Rows" from "{@directory}shops.yml" to 6
+
+		set skript-yaml value "Shops.Example.Gui.FillItem.Item" from "{@directory}shops.yml" to "Red Stained Glass Pane"
+		set skript-yaml value "Shops.Example.Gui.FillItem.Name" from "{@directory}shops.yml" to "&7"
+
+		set skript-yaml value "Shops.Example.Gui.BackButton.Item" from "{@directory}shops.yml" to "Barrier"
+		set skript-yaml value "Shops.Example.Gui.BackButton.Name" from "{@directory}shops.yml" to "&c&lBack"
+		set skript-yaml value "Shops.Example.Gui.BackButton.Lore" from "{@directory}shops.yml" to "&7Click Here|nl|&7To return to the home screen."
+		set skript-yaml value "Shops.Example.Gui.BackButton.Slot" from "{@directory}shops.yml" to 49
+
+		set skript-yaml value "Shops.Example.Items.1.Item" from "{@directory}shops.yml" to "Stone"
+		set skript-yaml value "Shops.Example.Items.1.DisplayName" from "{@directory}shops.yml" to "&fItem With Lore Example"
+		set skript-yaml value "Shops.Example.Items.1.Command" from "{@directory}shops.yml" to "False"
+		set skript-yaml value "Shops.Example.Items.1.Lore" from "{@directory}shops.yml" to "&7Line1|nl|&dLine2"
+		set skript-yaml value "Shops.Example.Items.1.Slot" from "{@directory}shops.yml" to 0
+		set skript-yaml value "Shops.Example.Items.1.BuyPrice" from "{@directory}shops.yml" to 100
+		set skript-yaml value "Shops.Example.Items.1.SellPrice" from "{@directory}shops.yml" to 100
+		wait 1 tick
+		save yaml "{@directory}shops.yml"
+	if skript-yaml "{@directory}messages.yml" is empty:
+		send "[DinoShop] Generating messages.yml file." to console
+
+		set skript-yaml value "Messages.SuccessfulPurchase" from "{@directory}messages.yml" to "You have successfully purchased &b{amt} x {item}&7 for &a${money}&7."
+		set skript-yaml value "Messages.SuccessfulSell" from "{@directory}messages.yml" to "You have successfully sold &b{amt} x {item}&7 for &a${money}&7."
+
+		set skript-yaml value "Messages.NotEnoughSell" from "{@directory}messages.yml" to "You do not have the required items to sell this."
+		set skript-yaml value "Messages.NotEnoughBuy" from "{@directory}messages.yml" to "Insufficient funds to purchase this."
+		set skript-yaml value "Messages.CannotBuy" from "{@directory}messages.yml" to "You're not allowed to purchase this item."
+		set skript-yaml value "Messages.CannotSell" from "{@directory}messages.yml" to "You're not allowed to sell this item."
+		set skript-yaml value "Messages.InvalidShopSpecified" from "{@directory}messages.yml" to "The shop you specified does not exist. &8(&b{shop}&8)"
+
+		set skript-yaml value "Messages.Reload" from "{@directory}messages.yml" to "You have successfully reloaded the configuration files."
+
+		set skript-yaml value "Messages.NoPerms" from "{@directory}messages.yml" to "You do not have the required permissions."
+
+
+		wait 1 tick
+		save yaml "{@directory}messages.yml"
+	send "[DinoShop] Configuration Files Have Been Loaded." to console
+
+function ds_getYamlValue(v: text) :: text:
+	set {_value} to yaml value {_v} from "{@directory}config.yml"
+	return "%{_value}%"

@@ -1,0 +1,63 @@
+#
+# Hello kind traveler!
+# Thank you for downloading this script (:)
+# 
+# You can config the entire skript within the DinoShop folder found in the plugins directory.
+# Although, if you do want to change the code feel free too, although if you do change it
+# please do not resell, and please give me credit. Thanks (:
+#
+# Join the support discord: https://discord.gg/PN5RTJ5Hv2
+# View the spigot plugin page: https://www.spigotmc.org/
+#
+
+#
+# Do not go beyond this point if you're unexperienced with skript.
+#
+
+options:
+	aliases: /shop, /shopmenu, /dinoshop
+	directory: plugins/DinoShop/
+
+command /shopgui [<text>]:
+	aliases: {@aliases}
+	trigger:
+		set {_prefix} to ds_getYamlValue("Prefix")
+		if arg 1 is not set:
+			set {_menuRows} to ds_getYamlValue("Menu.Rows") parsed as integer
+			set {_menuName} to ds_getYamlValue("Menu.Name")
+			create a gui with virtual chest with {_menuRows} rows named {_menuName}:
+				set {_fillItem} to ds_getYamlValue("Menu.FillItem.Item") parsed as Item
+				if {_fillItem} is not air:
+					set name of {_fillItem} to ds_getYamlValue("Menu.FillItem.Name")
+					make gui slot (all integers between 0 and ({_menuRows} * 9)) with 1 of {_fillItem}
+				loop yaml node keys "Shops" from "{@directory}shops.yml":
+					set {_shop} to loop-value
+					set {_name} to (yaml value "Shops.%loop-value%.HomeGui.Name" from "{@directory}shops.yml")
+					set {_lore::*} to (yaml value "Shops.%loop-value%.HomeGui.Lore" from "{@directory}shops.yml") split by "|nl|"
+					set {_item} to (yaml value "Shops.%loop-value%.HomeGui.Item" from "{@directory}shops.yml") parsed as item
+					set {_slot} to (yaml value "Shops.%loop-value%.HomeGui.Slot" from "{@directory}shops.yml")
+					set name of {_item} to {_name}
+					set lore of {_item} to {_lore::*}
+					make gui slot {_slot} with 1 of {_item}:
+						ds_openShopMenu(player, {_shop})
+			open the last gui for player
+		else if arg 1 is "gethelditem":
+			send "%{_prefix}% %player's tool%"
+		else if arg 1 is "reload":
+			if sender is console:
+				set {_allow} to true
+			if player has permission "DinoShop.Reload":
+				set {_allow} to true
+			if {_allow} is true:
+				set {_message} to (yaml value "Messages.Reload" from "{@directory}messages.yml")
+				ds_ReloadConfigs()
+				send "%{_prefix}%%{_message}%"
+			else:
+				set {_message} to (yaml value "Messages.NoPerms" from "{@directory}messages.yml")
+				send "%{_prefix}%%{_message}%"
+		else if arg 1 is "ver" or "version":
+			send "&b[DinoShop]&f Beta v1.0"
+			send "&b&l * &fAuthor: &b{zabrid}##3433"
+			send "&b&l * &fSupport Discord: &b<link:https://discord.gg/PN5RTJ5Hv2>Click Here!"
+		else: 
+			ds_openShopMenu(player, arg 1)
