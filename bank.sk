@@ -1,0 +1,360 @@
+options:
+#
+# Last Modified: 6/2/2020
+#
+# Zabrid's Bank Skript
+#
+# Made by: Zabrid
+#
+    
+  #Color Configurations
+
+    #Main Color (Default: &d)
+    mainColor: &d
+    #Secondary Color (Default: &7)
+    secondaryColor: &7
+
+
+  #Interest Configurations
+
+    #How many seconds pass until you gain interest (Default: 43200)
+    interestTime: 43200
+    #Formatted time for interest (Default: 12h)
+    formatedInterestTime: 12h
+
+
+  #GUI Configurations
+   #Please note: You do not need to put a color code as it will use the Main Color configuration.
+   #Please Note 2: If you do put a color it will override the Main Color configuration.
+
+   #Gui Titles
+    #Name of the main /bank gui (Default: &lBanker)
+    nameOfMainGui: &lBanker
+    #Name of the deposit /bank gui (Default: &lBanker)
+    nameOfDepositGui: &lBanker
+    #Name of the withdraw /bank gui (Default: &lBanker)
+    nameOfWithdrawGui: &lBanker
+    #Name of the vault /bank gui (Default: &lBanker's Vault)
+    nameOfVaultGui: &lBanker's Vault
+
+   #Gui Items
+    #Name of the back item (Default: &lBack)
+    nameOfBackGuiItem: &lBack
+    #Name of main gui deposit item (Default: &lDeposit Money)
+    nameOfDepositGuiItem: &lDeposit Money
+    #Name of main gui withdraw item (Default: &lWithdraw Money)
+    nameOfWithdrawGuiItem: &lWithdraw Money
+    #Name of main gui vault item (Default: &lItem Vault)
+    nameOfVaultGuiItem: &lItem Vault
+    #Item type of back item (Default: glowing feather)
+    itemTypeOfBackItem: glowing feather
+    #Item type of main gui deposit item (Default: paper)
+    itemTypeOfMainGuiDepositItem: paper
+    #Item type of main gui withdraw item (Default: dispenser)
+    itemTypeOfMainGuiWithdrawItem: dispenser
+    #Item type of main gui bank item (Default: chest)
+    itemTypeOfMainGuiVaultItem: chest
+    #Item type of fill item (Default: black glass pane named "&7")
+    itemTypeOfFillItem: black glass pane named "&7" #to add a lore simply add "with lore "loreLine1||loreLine2""
+
+#Max Balance
+    #Max bank balance (default: 1000000000)
+    maxBankBalance: 1000000000
+
+
+#
+# I do not recommend editing beyond this point
+# unless you know exactly what you're doing
+# contact me on discord @ {zabrid}#3433 if you need me to update something
+#
+
+import:
+    java.lang.System
+    org.bukkit.Bukkit
+    java.io.ByteArrayOutputStream
+    org.bukkit.util.io.BukkitObjectOutputStream
+    org.bukkit.util.io.BukkitObjectInputStream
+    java.io.ByteArrayInputStream
+    org.yaml.snakeyaml.external.biz.base64Coder.Base64Coder
+# ################################################
+#Functions/Effects
+
+#To Base 64 Function by AsuDev
+function toBase64(inventory: inventory) :: object:
+    set {_outputStream} to new ByteArrayOutputStream()
+    set {_dataOutput} to new BukkitObjectOutputStream({_outputStream})
+    {_dataOutput}.writeInt({_inventory}.getSize())
+    set {_c} to 0
+    loop {_inventory}.getSize() times:
+        set {_i} to slot {_c} of {_inventory}
+        {_dataOutput}.writeObject({_i})
+        add 1 to {_c}
+    {_dataOutput}.close()
+    return Base64Coder.encodeLines({_outputStream}.toByteArray())
+#From base 64 items
+function fromBase64Items(s: string) :: objects:
+    set {_inputStream} to new ByteArrayInputStream(Base64Coder.decodeLines({_s}))
+    set {_dataInput} to new BukkitObjectInputStream({_inputStream})
+    set {_inventory} to Bukkit.getServer().createInventory(null, {_dataInput}.readInt())
+    set {_c} to 0
+    loop {_inventory}.getSize() times:
+        set {_items::%{_c}%} to {_dataInput}.readObject()
+        add 1 to {_c}
+    {_dataInput}.close()
+    return {_items::*}
+#From base 64 inveotry AsuDev
+function fromBase64Inventory(s: string) :: inventory:
+    set {_inputStream} to new ByteArrayInputStream(Base64Coder.decodeLines({_s}))
+    set {_dataInput} to new BukkitObjectInputStream({_inputStream})
+    set {_inventory} to Bukkit.getServer().createInventory(null, {_dataInput}.readInt())
+    set {_c} to 0
+    loop {_inventory}.getSize() times:
+        {_inventory}.setItem({_c}, {_dataInput}.readObject())
+        add 1 to {_c}
+    {_dataInput}.close()
+    return {_inventory}
+#Format money with commas function by AsuDev
+function formatNumbers(i: text) :: string:
+    return regex replace "(?<=\d)(?=(\d\d\d)+(?!\d))" with "," in {_i}
+#Expression Unix Time by AsuDev 
+expression unix time:
+    return type: number
+    get:
+        return round(System.currentTimeMillis() / 1000)
+#Expression Convert Number Into Time Format by AsuDev
+expression convert[ed] number %number% into time format:
+    return type: string
+    get:
+        set {_s} to "s"
+        set {_seconds} to expr-1
+        set {_p1} to mod({_seconds}, 60)
+        set {_p2} to floor({_seconds}/60)
+        set {_p3} to mod({_p2}, 60)
+        set {_p2} to floor({_p2} / 60)
+        return "%{_p2}%h %{_p3}%m %{_p1}%%{_s}%"
+# ################################################
+#Meat and potatoes
+on quit:
+    delete {bank.chat.response.%uuid of player%}
+on join:
+    delete {bank.chat.response.%uuid of player%}
+    if {bank.balance::%uuid of player%} is not set:
+        set {bank.balance::%uuid of player%} to 0
+    if {player-bank-interest.%uuid of player%} is not set:
+        set {player-bank-interest.%uuid of player%} to unix time
+    set {_timeElapsed} to unix time - {player-bank-interest.%uuid of player%}
+    if {_timeElapsed} is greater than or equal to {@interestTime}:
+        while {_timeElapsed} is greater than or equal to {@interestTime}:
+            remove {@interestTime} from {_timeElapsed}
+            if {bank.balance::%uuid of player%} * 1.05 is less than or equal to {@maxBankBalance}:
+                set {bank.balance::%uuid of player%} to {bank.balance::%uuid of player%}*1.05
+                add 1 to {_c}
+        set {player-bank-interest.%uuid of player%} to unix time - ({@interestTime} - {_timeElapsed})
+        wait 2 seconds
+        set {_money} to formatNumbers("%{bank.balance::%uuid of player%}%")
+        if {_c} is set:
+            message "&a&l[!] &aYou gained 5%% interest on your bank balance a total of %{_c}% times and your bank balance is now &a&l$&a%{_money}%"
+every 1 seconds:
+    loop all players:
+        set {_money} to formatNumbers("%{bank.balance::%uuid of loop-player%}%")
+        if unix time - {player-bank-interest.%uuid of loop-player%} is greater than or equal to {@interestTime}:
+            if {bank.balance::%uuid of loop-player%}*1.05 is less than {@maxBankBalance}:
+                set {player-bank-interest.%uuid of loop-player%} to unix time
+                set {bank.balance::%uuid of loop-player%} to {bank.balance::%uuid of loop-player%}*1.05
+                send "&a&l[!] &aYou just gained 5%% in bank interest! Your bank now has &a&l$&a%{_money}%" to loop-player
+            else:
+                set {player-bank-interest.%uuid of loop-player%} to unix time
+                send "&c&l[!] &cYou gained 5%% interest on your money, but it was deleted as it passed the bank limit." to loop-player
+command /bank [<text>] [<offline player>]:
+    aliases: /banker, /banks,
+    trigger:
+        if player has permission "bank.use":
+            if arg 1 is not set:
+                if {bank.balance::%uuid of player%} is greater than {@maxBankBalance} - 1:
+                    set {_BalanceReached} to true
+                else:
+                    set {_BalanceReached} to false
+                open virtual chest inventory with 4 rows with title "{@mainColor}{@nameOfMainGui}" to player
+                set {_money} to formatNumbers("%{bank.balance::%uuid of player%}%")
+                format gui slot (all integers between 0 and 36) of player with {@itemTypeOfFillItem}
+                set {_timeRemaining} to {@interestTime} - (unix time - {player-bank-interest.%uuid of player%})
+                format gui slot 15 of player with {@itemTypeOfMainGuiVaultItem} named "{@mainColor}{@nameOfVaultGuiItem}" with lore "{@secondaryColor}||{@secondaryColor}Keep your items safe and||{@secondaryColor}secure inside of the Item Bank!||{@secondaryColor}||{@mainColor}Click to open the Item Vault!" to run:
+                    execute player command "itembank"
+                if {_BlanceReached} is true:
+                    format gui slot 11 of player with {@itemTypeOfMainGuiDepositItem} named "{@mainColor}{@nameOfDepositGuiItem}" with lore "{@secondaryColor}Current Balance: {@mainColor}$%{_money}%||{@secondaryColor}||{@secondaryColor}Store money in the back to||{@secondaryColor}keep it safe while you go out||{@secondaryColor}on adventures!||{@secondaryColor}||{@secondaryColor}You will earn {@mainColor}5%% {@secondaryColor} compound interest every {@mainColor}{@formatedInterestTime}{@secondaryColor}.||{@secondaryColor}||{@secondaryColor}Until Interest: {@mainColor}%converted number {_timeRemaining} into time format%||{@secondaryColor}||{@mainColor}Click to make a deposit" to run:
+                        send "&c&l[!] &cYou have reached your max bank capacity and cannot deposit anymore."
+                    format gui slot 13 of player with {@itemTypeOfMainGuiWithdrawItem} named "{@mainColor}{@nameOfWithdrawGuiItem}" with lore "{@secondaryColor}Current Balance: {@mainColor}$%{_money}%||{@secondaryColor}||{@secondaryColor}Withdraw money from the bank||{@secondaryColor}bank into your balance.||{@secondaryColor}||{@mainColor}Click to withdraw money!" to run:
+                        execute player command "bank withdraw"
+                else:
+                    format gui slot 11 of player with {@itemTypeOfMainGuiDepositItem} named "{@mainColor}{@nameOfDepositGuiItem}" with lore "{@secondaryColor}Current Balance: {@mainColor}$%{_money}%||{@secondaryColor}||{@secondaryColor}Store money in the back to||{@secondaryColor}keep it safe while you go out||{@secondaryColor}on adventures!||{@secondaryColor}||{@secondaryColor}You will earn {@mainColor}5%% {@secondaryColor} compound interest every {@mainColor}{@formatedInterestTime}{@secondaryColor}.||{@secondaryColor}||{@secondaryColor}Until Interest: {@mainColor}%converted number {_timeRemaining} into time format%||{@secondaryColor}||{@mainColor}Click to make a deposit" to run:
+                        execute player command "bank deposit"
+                    format gui slot 13 of player with {@itemTypeOfMainGuiWithdrawItem} named "{@mainColor}{@nameOfWithdrawGuiItem}" with lore "{@secondaryColor}Current Balance: {@mainColor}$%{_money}%||{@secondaryColor}||{@secondaryColor}Withdraw money from the bank||{@secondaryColor}bank into your balance.||{@secondaryColor}||{@mainColor}Click to withdraw money!" to run:
+                        execute player command "bank withdraw"
+            else if arg 1 is "deposit" or "d":
+                if arg 2 is not set:
+                    open virtual chest inventory with 4 rows with title "{@mainColor}{@nameOfDepositGui}" to player
+                    set {_money} to formatNumbers("%{bank.balance::%uuid of player%}%")
+                    set {_moneyHalf} to player's balance / 2
+                    set {_money2} to formatNumbers("%{_moneyHalf}%")
+                    format gui slot (all integers between 0 and 36) of player with {@itemTypeOfFillItem}
+                    format gui slot 11 of player with 64 {@itemTypeOfMainGuiDepositItem} named "{@mainColor}Deposit Entire Balance" with lore "&8Bank Deposit||{@secondaryColor}||{@secondaryColor}Current Balance: {@mainColor}$%{_money}%||{@secondaryColor}Amount to deposit: {@mainColor}%player's balance%||{@secondaryColor}||{@secondaryColor}Note:||{@secondaryColor}When you deposit any amount of money||{@secondaryColor}Your until interest will go back to {@mainColor}{@formatedInterestTime}||{@secondaryColor}||{@mainColor}Click to deposit money!" to run:
+                        set {_a} to player's balance
+                        if {_a} + {bank.balance::%uuid of player%} is less than or equal to {@maxBankBalance}:
+                            subtract {_a} from player's balance
+                            add {_a} to {bank.balance::%uuid of player%}
+                            set {_money} to formatNumbers("%{_a}%")
+                            send "&c&l[!] &cAll of your money has been deposited into the bank."
+                            send "&c&l-&c%{_money}%"
+                            set {player-bank-interest.%uuid of player%} to unix time
+                            wait 1 ticks
+                            execute player command "bank deposit"
+                        else:
+                            send "&c&l[!] &cYou cannot deposit this amount as it would cause your bank to go over the limit."
+                    format gui slot 13 of player with 32 {@itemTypeOfMainGuiDepositItem} named "{@mainColor}Deposit Half Balance" with lore "&8Bank Deposit||{@secondaryColor}||{@secondaryColor}Current Balance: {@mainColor}$%{_money}%||{@secondaryColor}Amount to deposit: {@mainColor}$%{_money2}%||{@secondaryColor}||{@secondaryColor}Note:||{@secondaryColor}When you deposit any amount of money||{@secondaryColor}Your until interest will go back to {@mainColor}{@formatedInterestTime}||{@secondaryColor}||{@mainColor}Click to deposit money!" to run:
+                        if {_moneyHalf} + {bank.balance::%uuid of player%} is less than or equal to {@maxBankBalance}:
+                            subtract {_moneyHalf} from player's balance
+                            add {_moneyHalf} to {bank.balance::%uuid of player%}
+                            send "&c&l[!] &cHalf of your money has been deposited into the bank."
+                            send "&c&l-&c$%{_money2}%"
+                            set {player-bank-interest.%uuid of player%} to unix time
+                            wait 1 ticks
+                            execute player command "bank deposit"
+                        else:
+                            send "&c&l[!] &cYou cannot deposit this amount as it would cause your bank to go over the limit."
+                    format gui slot 15 of player with {@itemTypeOfMainGuiDepositItem} named "{@mainColor}Deposit Specific Amount" with lore "&8Bank Deposit||{@secondaryColor}||{@secondaryColor}Current Balance: {@mainColor}$%{_money}%||{@secondaryColor}||{@secondaryColor}Note:||{@secondaryColor}When you deposit any amount of money||{@secondaryColor}Your until interest will go back to {@mainColor}{@formatedInterestTime}||{@secondaryColor}||{@mainColor}Click to deposit money!" to run:
+                        close player's inventory
+                        set {bank.chat.response.%uuid of player%} to true
+                        send "&a&l[!] &aPlease put the amount of money you want to deposit in chat."
+                        wait 30 seconds
+                        if {bank.chat.response.%uuid of player%} is set:
+                            delete {bank.chat.response.%uuid of player%}
+                            send "&c&l[!] &cRan out of time, please try again."
+                        else:
+                            stop
+                    format gui slot 31 of player with 1 of {@itemTypeOfBackItem} named "{@mainColor}{@nameOfBackGuiItem}" with lore "" to run:
+                        execute player command "bank"
+            else if arg 1 is "balance" or "bal":
+                if arg 2 is not set:
+                    set {_money} to formatNumbers("%{bank.balance::%uuid of player%}%")
+                    set {_timeRemaining} to {@interestTime} - (unix time - {player-bank-interest.%uuid of player%})
+                    message ""
+                    message "&a&l[!] &aYour bank balance: &a&l${@secondaryColor}%{_money}%"
+                    message "&a&l[!] &aNext 5%% interest: {@secondaryColor}%converted number {_timeRemaining} into time format%"
+                    message ""
+                else:
+                    if arg 2 has played before:
+                        set {_money} to formatNumbers("%{bank.balance::%uuid of arg 2%}%")
+                        set {_timeRemaining} to {@interestTime} - (unix time - {player-bank-interest.%uuid of arg 2%})
+                        message ""
+                        message "&a&l[!] &a%arg 2%'s bank balance: &a&l${@secondaryColor}%{_money}%"
+                        message "&a&l[!] &a%arg 2%'s next 5%% interest: {@secondaryColor}%converted number {_timeRemaining} into time format%"
+                        message ""
+            else if arg 1 is "withdraw" or "w":
+                open virtual chest inventory with 4 rows with title "{@mainColor}{@nameOfWithdrawGui}" to player
+                set {_money} to formatNumbers("%{bank.balance::%uuid of player%}%")
+                set {_moneyHalf} to {bank.balance::%uuid of player%} / 2
+                set {_money2} to formatNumbers("%{_moneyHalf}%")
+                format gui slot (all integers between 0 and 36) of player with {@itemTypeOfFillItem}
+                format gui slot 31 of player with 1 of {@itemTypeOfBackItem} named "{@mainColor}{@nameOfBackGuiItem}" with lore "" to run:
+                    execute player command "bank"
+                format gui slot 11 of player with 64 {@itemTypeOfMainGuiWithdrawItem} named "{@mainColor}Withdraw Entire Balance" with lore "&8Bank Withdraw||{@secondaryColor}||{@secondaryColor}Current Balance: {@mainColor}$%{_money}%||{@secondaryColor}Amount to withdraw: {@mainColor}$%{_money}%||{@secondaryColor}||{@secondaryColor}Note:||{@secondaryColor}When you withdraw any amount of money||{@secondaryColor}Your until intrest will go back to {@mainColor}{@formatedInterestTime}||{@secondaryColor}||{@mainColor}Click to withdraw money!" to run:
+                    set {_a} to {bank.balance::%uuid of player%}
+                    subtract {_a} from {bank.balance::%uuid of player%}
+                    add {_a} to balance of player
+                    set {_money} to formatNumbers("%{_a}%")
+                    set {player-bank-interest.%uuid of player%} to unix time
+                    send "&a&l[!] &aAll of your bank balance has been withdrawn."
+                    send "&a&l[!] &a&l+&a$%{_money}%"
+                    wait 1 ticks
+                    execute player command "bank withdraw"
+                format gui slot 13 of player with 32 {@itemTypeOfMainGuiWithdrawItem} named "{@mainColor}Withdraw Half Balance" with lore "&8Bank Withdraw||{@secondaryColor}||{@secondaryColor}Current Balance: {@mainColor}$%{_money}%||{@secondaryColor}Amount to withdraw: {@mainColor}$%{_money2}%||{@secondaryColor}||{@secondaryColor}Note:||{@secondaryColor}When you withdraw any amount of money||{@secondaryColor}Your until intrest will go back to {@mainColor}{@formatedInterestTime}||{@secondaryColor}||{@mainColor}Click to withdraw!" to run:
+                    subtract {_moneyHalf} from {bank.balance::%uuid of player%}
+                    add {_moneyHalf} to balance of player
+                    set {player-bank-interest.%uuid of player%} to unix time
+                    send "&a&l[!] &aHalf of your money has been withdrawn from the bank."
+                    send "&a&l-&a$%{_money2}%"
+                    wait 1 ticks
+                    execute player command "bank withdraw"
+                format gui slot 15 of player with {@itemTypeOfMainGuiWithdrawItem} named "{@mainColor}Withdraw Specific Amount" with lore "&8Bank Withdraw||{@secondaryColor}||{@secondaryColor}Current Balance: {@mainColor}$%{_money}%||{@secondaryColor}||{@secondaryColor}Note:||{@secondaryColor}When you withdraw any amount of money||{@secondaryColor}Your until intrest will go back to {@mainColor}{@formatedInterestTime}||{@secondaryColor}||{@mainColor}Click to withdraw!" to run:
+                    close player's inventory
+                    set {bank.chat.response.1.%uuid of player%} to true
+                    send "&a&l[!] &aPlease put the amount of money you want to withdraw in chat."
+                    wait 30 seconds
+                    if {bank.chat.response.1.%uuid of player%} is set:
+                        delete {bank.chat.response.1.%uuid of player%}
+                        send "&c&l[!] &cRan out of time, please try again."
+                    else:
+                        stop
+            else if arg 1 is "reset":
+                if player has permission "bank.admin":
+                    if arg 2 is set:
+                        if arg 2 has played before:
+                            delete {bank.balance::%uuid of arg 2%}
+                            delete {player-bank-inventory::%uuid of arg 2%}
+                            kick arg 2 due to "&cBank stats have been reset%nl%{@secondaryColor}Please Relog"
+                            send "&c&l[!] &c%arg 2%'s stats have been reset."
+                            send "&c&l[!] &c%arg 2%'s vault has been reset."
+                        else:
+                            send "&c&l[!] &cPlayer Not Found."
+                    else:
+                        send "&c&l[!] &cCorrect Usage: /bank reset <player>"
+                else:
+                    send "&c&l[!] &cNo Permission"
+on chat:
+    if {bank.chat.response.%uuid of player%} is set:
+        set {_r} to message parsed as integer
+        if {_r} is set:
+            if {_r} is less than or equal to player's balance:
+                cancel event
+                if {_r} + {bank.balance::%uuid of player%} is less than or equal to {@maxBankBalance}:
+                    subtract {_r} from player's balance
+                    add {_r} to {bank.balance::%uuid of player%}
+                    set {_money} to formatNumbers("%{_r}%")
+                    send "&a&l[!] &a$%{_money}% has been deposited into the bank." to player
+                    delete {bank.chat.response.%uuid of player%}
+                    set {player-bank-interest.%uuid of player%} to unix time
+                else:
+                    send "&c&l[!] &cYou cannot deposit this amount as it would cause your bank to go over the limit."
+                    delete {bank.chat.response.%uuid of player%}
+            else:
+                cancel event
+                send "&c&l[!] &cYou do not have the funds to deposit that much into your bank." to player
+                delete {bank.chat.response.%uuid of player%}
+        else:
+            delete {bank.chat.response.%uuid of player%}
+            send "&c&l[!] &cError, please use an integer next time."
+    if {bank.chat.response.1.%uuid of player%} is set:
+        set {_r} to message parsed as integer
+        if {_r} is set:
+            if {_r} is less than or equal to {bank.balance::%uuid of player%}:
+                cancel event
+                add {_r} to balance of player
+                subtract {_r} from {bank.balance::%uuid of player%}
+                set {_money} to formatNumbers("%{_r}%")
+                send "&a&l[!] &a$%{_money}% has been withdrawn into your balance." to player
+                delete {bank.chat.response.1.%uuid of player%}
+                set {player-bank-interest.%uuid of player%} to unix time
+            else:
+                cancel event
+                send "&c&l[!] &cYour bank does not have the funds for &cyou &cto &cwithdraw &cthat &camount." to player
+                delete {bank.chat.response.1.%uuid of player%}
+        else:
+            delete {bank.chat.response.1.%uuid of player%}
+            send "&c&l[!] &cError, please use an integer next time."
+command /itembank:
+    trigger:
+        open virtual chest inventory with 2 rows with title "{@mainColor}{@nameOfVaultGui}" to player
+        format gui slot (all integers between 9 and 26) of player with {@itemTypeOfFillItem}
+        format gui slot 13 of player with 1 of {@itemTypeOfBackItem} named "{@mainColor}{@nameOfBackGuiItem}" with lore "" to run:
+            execute player command "bank"
+        if {player-bank-inventory::%uuid of player%} is set:
+            set {_inv} to fromBase64Inventory({player-bank-inventory::%uuid of player%})
+            set serialized contents of player's current inventory to serialized contents of {_inv}
+        else:
+            set {player-bank-inventory::%uuid of player%} to toBase64(player's current inventory)
+        while name of player's current inventory contains "{@mainColor}{@nameOfVaultGui}":
+            set {player-bank-inventory::%uuid of player%} to toBase64(player's current inventory)
+            wait 10 ticks
+on inventory close:
+    name of player's current inventory is "{@mainColor}{@nameOfVaultGui}"
+    set {player-bank-inventory::%uuid of player%} to toBase64(player's current inventory)
