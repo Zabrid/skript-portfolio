@@ -1,1 +1,1 @@
-# skript-portfolio
+Dino-Shop is a fully YAML configurable GUI-Shop skript. You can learn more about it on it's Spigot page: https://www.spigotmc.org/resources/%E2%9C%B6-dinoshop-%E2%9C%B6-1-18-support-skript-fully-configurable-shop-gui.98096/
